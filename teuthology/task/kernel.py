@@ -1035,11 +1035,17 @@ def get_latest_image_version_rpm(remote):
     Get kernel image version of the newest kernel rpm package.
     Used for distro case.
     """
+    dist_release = remote.os.name
+    kernel_pkg_name = None
+    if dist_release in ['opensuse', 'sle']: 
+        kernel_pkg_name = "kernel-default"
+    else:
+        kernel_pkg_name = "kernel"
     proc = remote.run(
         args=[
             'rpm',
             '-q',
-            'kernel',
+            kernel_pkg_name,
             '--last',  # order by install time
             run.Raw('|'),
             'head',  # only show top/latest kernel
@@ -1049,7 +1055,7 @@ def get_latest_image_version_rpm(remote):
     for kernel in proc.stdout.getvalue().split():
         if kernel.startswith('kernel'):
             if 'ceph' not in kernel:
-                version = kernel.split('kernel-')[1]
+                version = kernel.split('{}-'.format(kernel_pkg_name))[1]
     log.debug("get_latest_image_version_rpm: %s", version)
     return version
 
