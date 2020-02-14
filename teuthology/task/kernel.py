@@ -759,8 +759,7 @@ def need_to_install_distro(remote):
         newest = get_latest_image_version_rpm(remote)
 
     if package_type == 'deb':
-        distribution = remote.os.name
-        newest = get_latest_image_version_deb(remote, distribution)
+        newest = get_latest_image_version_deb(remote, dist_release)
 
     output.close()
     err_mess.close()
@@ -819,25 +818,30 @@ def install_kernel(remote, path=None, version=None):
     :param path:    package path (for local and gitbuilder cases)
     :param version: for RPM distro kernels, pass this to update_grub_rpm
     """
+    dist_release = remote.os.name
     templ = "install_kernel(remote={remote}, path={path}, version={version})"
     log.debug(templ.format(remote=remote, path=path, version=version))
     package_type = remote.os.package_type
     if package_type == 'rpm':
-        if path:
-            version = get_image_version(remote, path)
-            # This is either a gitbuilder or a local package and both of these
-            # could have been built with upstream rpm targets with specs that
-            # don't have a %post section at all, which means no initrd.
-            maybe_generate_initrd_rpm(remote, path, version)
-        elif not version or version == 'distro':
-            version = get_latest_image_version_rpm(remote)
-        update_grub_rpm(remote, version)
+        if dist_release in ['opensuse', 'sle']: 
+            # grub and initrd are already taken care of by 
+            # "zypper -n install kernel-default"
+            true
+        else:
+            if path:
+                version = get_image_version(remote, path)
+                # This is either a gitbuilder or a local package and both of these
+                # could have been built with upstream rpm targets with specs that
+                # don't have a %post section at all, which means no initrd.
+                maybe_generate_initrd_rpm(remote, path, version)
+            elif not version or version == 'distro':
+                version = get_latest_image_version_rpm(remote)
+            update_grub_rpm(remote, version)
         remote.run( args=['sudo', 'shutdown', '-r', 'now'], wait=False )
         return
 
     if package_type == 'deb':
-        distribution = remote.os.name
-        newversion = get_latest_image_version_deb(remote, distribution)
+        newversion = get_latest_image_version_deb(remote, dist_release)
         if 'ubuntu' in distribution:
             grub2conf = teuthology.get_file(remote, '/boot/grub/grub.cfg', True)
             submenu = ''
