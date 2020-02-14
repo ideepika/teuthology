@@ -826,7 +826,7 @@ def install_kernel(remote, path=None, version=None):
         if dist_release in ['opensuse', 'sle']: 
             # grub and initrd are already taken care of by 
             # "zypper -n install kernel-default"
-            true
+            pass
         else:
             if path:
                 version = get_image_version(remote, path)
